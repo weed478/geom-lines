@@ -119,6 +119,15 @@ function run()
         end
     end
 
+    # segment saving to file
+
+    Label(controlsgrid[5, 1:3], "Save/load segments")
+    filenametb = Textbox(controlsgrid[6, 1],
+        placeholder="Filename",
+    )
+    savebtn = Button(controlsgrid[6, 2], label="Save")
+    loadbtn = Button(controlsgrid[6, 3], label="Load")
+
     display(fig)
 
     nothing
