@@ -1,0 +1,4 @@
+name = "lines"
+uuid = "21e19a8c-1067-4e2e-9e26-e86869e5d673"
+authors = ["Jakub Karbowski <carbon@student.agh.edu.pl>"]
+version = "0.1.0"
