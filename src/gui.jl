@@ -67,6 +67,32 @@ function run()
         poppoint!()
     end
 
+    # segment generation
+
+    Label(controlsgrid[2, 1:3], "Random segment generation")
+
+    xlowtb = Textbox(controlsgrid[3, 1],
+        placeholder="X min",
+        validator=Float64,
+    )
+
+    xhightb = Textbox(controlsgrid[3, 2],
+        placeholder="X max",
+        validator=Float64,
+    )
+
+    ylowtb = Textbox(controlsgrid[4, 1],
+        placeholder="X min",
+        validator=Float64,
+    )
+
+    yhightb = Textbox(controlsgrid[4, 2],
+        placeholder="X max",
+        validator=Float64,
+    )
+
+    generatebtn = Button(controlsgrid[3:4, 3], label="Generate")
+
     display(fig)
 
     nothing
