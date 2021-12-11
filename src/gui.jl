@@ -4,6 +4,23 @@ using GLMakie
 using GeometryBasics
 using Distributions: Uniform
 
+function savesegments(points, filename)
+    open(filename, "w") do f
+        for (x, y) in points
+            println(f, "$x $y")
+        end
+    end
+end
+
+function loadsegments(filename)::Union{Vector{Point2f}, Nothing}
+    points = Point2f[]
+    for line in readlines(filename)
+        x, y = parse.(Float32, split(line))
+        push!(points, Point2f(x, y))
+    end
+    points
+end
+
 function run()
     fig = Figure()
     fig[1, 2] = controlsgrid = GridLayout(tellwidth=false, tellheight=false)
@@ -130,8 +147,19 @@ function run()
     filenametb = Textbox(controlsgrid[8, 1],
         placeholder="Filename",
     )
+    
     savebtn = Button(controlsgrid[8, 2], label="Save")
+    on(savebtn.clicks) do n
+        savesegments(points[], filenametb.displayed_string[])
+    end
+    
     loadbtn = Button(controlsgrid[8, 3], label="Load")
+    on(loadbtn.clicks) do n
+        newpoints = loadsegments(filenametb.displayed_string[])
+        if !isnothing(newpoints)
+            points[] = newpoints
+        end
+    end
 
     display(fig)
 
