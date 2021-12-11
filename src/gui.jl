@@ -6,7 +6,7 @@ using Distributions: Uniform
 
 function run()
     fig = Figure()
-    fig[2, 1] = controlsgrid = GridLayout(tellwidth=false)
+    fig[1, 2] = controlsgrid = GridLayout(tellwidth=false, tellheight=false)
     ax = Axis(fig[1, 1])
     deregister_interaction!(ax, :rectanglezoom)
 
