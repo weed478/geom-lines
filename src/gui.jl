@@ -4,6 +4,8 @@ using GLMakie
 using GeometryBasics
 using Distributions: Uniform
 
+import ..Sweeping
+
 function savesegments(points, filename)
     open(filename, "w") do f
         for (x, y) in points
@@ -23,8 +25,9 @@ end
 
 function run()
     fig = Figure()
-    fig[1, 2] = controlsgrid = GridLayout(tellwidth=false, tellheight=false)
-    ax = Axis(fig[1, 1])
+    fig[1, 2] = infogrid = GridLayout(tellwidth=false, tellheight=true)
+    fig[2, 2] = controlsgrid = GridLayout(tellwidth=false, tellheight=false)
+    ax = Axis(fig[1:2, 1])
     deregister_interaction!(ax, :rectanglezoom)
 
     points = Node(Point2f[])
@@ -38,6 +41,21 @@ function run()
         ax,
         points,
     )
+
+    # intersections
+
+    hasintersection = Node(false)
+
+    on(points) do points
+        lines = Line{2, Float32}[]
+        for i = 2:2:length(points)
+            push!(lines, Line(points[i-1], points[i]))
+        end
+        hasintersection[] = Sweeping.hasintersection(lines)
+    end
+
+    hasintersectiontext = @lift($hasintersection ? "Some segments are intersecting" : "No intersections found")
+    Label(infogrid[1, 1:3], hasintersectiontext)
 
     # controls
 
