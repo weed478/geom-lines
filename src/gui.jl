@@ -72,32 +72,37 @@ function run()
 
     Label(controlsgrid[2, 1:3], "Random segment generation")
 
-    xlowtb = Textbox(controlsgrid[3, 1],
+    Label(controlsgrid[3, 1], "X min")
+    xlowtb = Textbox(controlsgrid[4, 1],
         placeholder="X min",
         validator=Float32,
     )
 
-    xhightb = Textbox(controlsgrid[3, 2],
+    Label(controlsgrid[3, 2], "X max")
+    xhightb = Textbox(controlsgrid[4, 2],
         placeholder="X max",
         validator=Float32,
     )
 
-    ylowtb = Textbox(controlsgrid[4, 1],
+    Label(controlsgrid[5, 1], "Y min")
+    ylowtb = Textbox(controlsgrid[6, 1],
         placeholder="Y min",
         validator=Float32,
     )
 
-    yhightb = Textbox(controlsgrid[4, 2],
+    Label(controlsgrid[5, 2], "Y max")
+    yhightb = Textbox(controlsgrid[6, 2],
         placeholder="Y max",
         validator=Float32,
     )
 
-    numsegstb = Textbox(controlsgrid[3, 3],
-        placeholder="Number of segments",
+    Label(controlsgrid[3, 3], "Num segments")
+    numsegstb = Textbox(controlsgrid[4, 3],
+        placeholder="Num segments",
         validator=Int,
     )
 
-    generatebtn = Button(controlsgrid[4, 3], label="Generate")
+    generatebtn = Button(controlsgrid[6, 3], label="Generate")
     on(generatebtn.clicks) do n
         xlow = tryparse(Float32, xlowtb.displayed_string[])
         xhigh = tryparse(Float32, xhightb.displayed_string[])
@@ -121,12 +126,12 @@ function run()
 
     # segment saving to file
 
-    Label(controlsgrid[5, 1:3], "Save/load segments")
-    filenametb = Textbox(controlsgrid[6, 1],
+    Label(controlsgrid[7, 1:3], "Save/load segments")
+    filenametb = Textbox(controlsgrid[8, 1],
         placeholder="Filename",
     )
-    savebtn = Button(controlsgrid[6, 2], label="Save")
-    loadbtn = Button(controlsgrid[6, 3], label="Load")
+    savebtn = Button(controlsgrid[8, 2], label="Save")
+    loadbtn = Button(controlsgrid[8, 3], label="Load")
 
     display(fig)
 
