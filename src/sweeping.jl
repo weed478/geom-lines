@@ -110,22 +110,22 @@ function findintersections(lines::Vector{Line{2, T}}) where T
         if ev isa BeginEvent
             s = getsegment(ev)
             push!(st, s)
-            checkintersection(eq, s, succ(st, s))
-            checkintersection(eq, s, pred(st, s))
+            checkintersection!(eq, s, succ(st, s))
+            checkintersection!(eq, s, pred(st, s))
         elseif E isa EndEvent
             s = getsegment(ev)
-            checkintersection(pred(st, s), succ(st, s))
+            checkintersection!(eq, pred(st, s), succ(st, s))
             delete!(st, s)
         else # IntersectionEvent
             s1, s2 = getsegments(ev)
             push!(intersections, (s1, s2))
             flip!(st, s1, s2)
             if succ(st, s1) === s2
-                checkintersection(eq, s1, pred(st, s1))
-                checkintersection(eq, s2, succ(st, s2))
+                checkintersection!(eq, s1, pred(st, s1))
+                checkintersection!(eq, s2, succ(st, s2))
             else
-                checkintersection(eq, s1, succ(st, s1))
-                checkintersection(eq, s2, pred(st, s2))
+                checkintersection!(eq, s1, succ(st, s1))
+                checkintersection!(eq, s2, pred(st, s2))
             end
         end
     end
