@@ -34,6 +34,7 @@ struct State{T}
 
 end
 
+Base.push!(st::State{T}, s::Segment{T}) where T = throw("Not implemented")
 Base.delete!(st::State{T}, s::Segment{T}) where T = throw("Not implemented")
 pred(st::State{T}, s::Segment{T}) where T = throw("Not implemented")
 succ(st::State{T}, s::Segment{T}) where T = throw("Not implemented")
