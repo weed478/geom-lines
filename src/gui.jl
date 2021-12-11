@@ -2,6 +2,7 @@ module gui
 
 using GLMakie
 using GeometryBasics
+using Distributions: Uniform
 
 function run()
     fig = Figure()
@@ -73,25 +74,50 @@ function run()
 
     xlowtb = Textbox(controlsgrid[3, 1],
         placeholder="X min",
-        validator=Float64,
+        validator=Float32,
     )
 
     xhightb = Textbox(controlsgrid[3, 2],
         placeholder="X max",
-        validator=Float64,
+        validator=Float32,
     )
 
     ylowtb = Textbox(controlsgrid[4, 1],
-        placeholder="X min",
-        validator=Float64,
+        placeholder="Y min",
+        validator=Float32,
     )
 
     yhightb = Textbox(controlsgrid[4, 2],
-        placeholder="X max",
-        validator=Float64,
+        placeholder="Y max",
+        validator=Float32,
     )
 
-    generatebtn = Button(controlsgrid[3:4, 3], label="Generate")
+    numsegstb = Textbox(controlsgrid[3, 3],
+        placeholder="Number of segments",
+        validator=Int,
+    )
+
+    generatebtn = Button(controlsgrid[4, 3], label="Generate")
+    on(generatebtn.clicks) do n
+        xlow = tryparse(Float32, xlowtb.displayed_string[])
+        xhigh = tryparse(Float32, xhightb.displayed_string[])
+        ylow = tryparse(Float32, ylowtb.displayed_string[])
+        yhigh = tryparse(Float32, yhightb.displayed_string[])
+        numsegs = tryparse(Int, numsegstb.displayed_string[])
+        if isnothing(xlow) || isnothing(xhigh) || isnothing(ylow) || isnothing(yhigh) || isnothing(numsegs)
+            return
+        end
+
+        xs = Float32[]
+        while length(xs) != numsegs * 2
+            push!(xs, unique(rand(Uniform(xlow, xhigh), numsegs * 2 - length(xs)))...)
+        end
+        ys = rand(Uniform(ylow, yhigh), numsegs * 2)
+
+        for (x, y) in zip(xs, ys)
+            pushpoint!(Point2f(x, y))
+        end
+    end
 
     display(fig)
 
