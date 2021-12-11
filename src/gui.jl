@@ -119,7 +119,7 @@ function run()
         validator=Int,
     )
 
-    generatebtn = Button(controlsgrid[6, 3], label="Generate")
+    generatebtn = Button(controlsgrid[5:6, 3], label="Generate")
     on(generatebtn.clicks) do n
         xlow = tryparse(Float32, xlowtb.displayed_string[])
         xhigh = tryparse(Float32, xhightb.displayed_string[])
@@ -144,7 +144,9 @@ function run()
     # segment saving to file
 
     Label(controlsgrid[7, 1:3], "Save/load segments")
-    filenametb = Textbox(controlsgrid[8, 1],
+
+    Label(controlsgrid[8, 1], "Filename")
+    filenametb = Textbox(controlsgrid[9, 1],
         placeholder="Filename",
     )
     
@@ -153,7 +155,7 @@ function run()
         savesegments(points[], filenametb.displayed_string[])
     end
     
-    loadbtn = Button(controlsgrid[8, 3], label="Load")
+    loadbtn = Button(controlsgrid[9, 2], label="Load")
     on(loadbtn.clicks) do n
         newpoints = loadsegments(filenametb.displayed_string[])
         if !isnothing(newpoints)
