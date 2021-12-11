@@ -1,5 +1,6 @@
 module lines
 
+include("sweeping.jl")
 include("gui.jl")
 
 function main()
