@@ -39,6 +39,8 @@ function run()
         points,
     )
 
+    # controls
+
     function pushpoint!(p)
         points[] = push!(points[], p)
     end
