@@ -3,6 +3,7 @@ module Sweeping
 export hasintersection
 
 using GeometryBasics
+using DataStructures
 
 
 
@@ -32,6 +33,7 @@ struct BeginEvent <: AbstractEvent
 end
 
 getsegment(ev::BeginEvent) = throw("Not implemented")
+getpriority(ev::BeginEvent) = throw("Not implemented")
 
 
 
@@ -42,6 +44,7 @@ struct EndEvent <: AbstractEvent
 end
 
 getsegment(ev::EndEvent) = throw("Not implemented")
+getpriority(ev::EndEvent) = throw("Not implemented")
 
 
 
@@ -52,22 +55,23 @@ struct IntersectionEvent <: AbstractEvent
 end
 
 getsegments(ev::IntersectionEvent) = throw("Not implemented")
+getpriority(ev::IntersectionEvent) = throw("Not implemented")
 
 
 
 # Events
 
-struct Events
-
+struct Events{T}
+    q::PriorityQueue{T, Union{BeginEvent, EndEvent, IntersectionEvent}}
 end
 
 function Events(lines::Vector{Line{2, T}}) where T
-    throw("Not implemented")
+    Events{T}(PriorityQueue(T, Union{BeginEvent, EndEvent, IntersectionEvent}))
 end
 
-Base.isempty(eq::Events) = throw("Not implemented")
-Base.push!(eq::Events) = throw("Not implemented")
-Base.pop!(eq::Events) = throw("Not implemented")
+Base.isempty(eq::Events) = isempty(eq.q)
+Base.push!(eq::Events, ev::E) where E<:AbstractEvent = enqueue!(eq.q, ev, getpriority(ev))
+Base.pop!(eq::Events) = dequeue!(eq.q)
 checkintersection!(eq::Events, s1, s2) = throw("Not implemented")
 
 
