@@ -93,7 +93,7 @@ function findintersections(lines::Vector{Line{2, T}}) where T
             s1, s2 = getsegments(ev)
             push!(intersections, (s1, s2))
             flip!(st, s1, s2)
-            if succ(st, s1) == s2
+            if succ(st, s1) === s2
                 checkintersection(eq, s1, pred(st, s1))
                 checkintersection(eq, s2, succ(st, s2))
             else
