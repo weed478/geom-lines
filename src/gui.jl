@@ -16,6 +16,11 @@ function run()
         points,
     )
 
+    linesegments!(
+        ax,
+        points,
+    )
+
     function pushpoint!(p)
         points[] = push!(points[], p)
     end
