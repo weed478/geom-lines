@@ -171,7 +171,7 @@ pop!(evq::Events) = dequeue!(evq.q)
 
 
 
-function orient(a::Point2{T}, b::Point2{T}, c::Point2{T})::Int
+function orient(a::Point2{T}, b::Point2{T}, c::Point2{T})::Int where T
     M::Matrix{T} = [a[1] a[2] 1
                     b[1] b[2] 1
                     c[1] c[2] 1]
