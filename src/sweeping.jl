@@ -4,6 +4,7 @@ export hasintersection
 
 using GeometryBasics
 using DataStructures
+using LinearAlgebra: det
 import Base.push!
 import Base.pop!
 import Base.insert!
@@ -167,7 +168,40 @@ end
 isempty(evq::Events) = isempty(evq.q)
 push!(evq::Events, ev::E) where E<:AbstractEvent = enqueue!(evq.q, ev, getpriority(ev))
 pop!(evq::Events) = dequeue!(evq.q)
-checkintersection!(evq::Events{T}, s1::Segment{T}, s2::Segment{T}) where T = throw("Not implemented")
+
+
+
+function orient(a::Point2{T}, b::Point2{T}, c::Point2{T})::Int
+    M::Matrix{T} = [a[1] a[2] 1
+                    b[1] b[2] 1
+                    c[1] c[2] 1]
+
+    d::T = det(M)
+
+    if abs(d) < e
+        0
+    elseif d < 0
+        -1
+    else
+        1
+    end
+end
+
+function checkintersection!(evq::Events{T}, s1::Segment{T}, s2::Segment{T}) where T
+    a1 = s1.line[1]
+    b1 = s1.line[2]
+    a2 = s2.line[1]
+    b2 = s2.line[2]
+
+    if orient(a1, b1, a2) != orient(a1, b1, b2) && orient(a2, b2, a1) != orient(a2, b2, b1)
+        # a1x + b1 = a2x + b2
+        # a1x - a2x = b2 - b1
+        # x = (b2 - b1) / (a1 - a2)
+        intersectionx = (s2.intercept - s1.intercept) / (s1.slope - s2.slope)
+        iev = IntersectionEvent(s1, s2, intersectionx)
+        push!(evq, iev)
+    end
+end
 
 
 function findintersections(lines::Vector{Line{2, T}}) where T
