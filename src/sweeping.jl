@@ -155,6 +155,13 @@ end
 
 function Events(lines::Vector{Line{2, T}}) where T
     evq = Events{T}(PriorityQueue(T, Union{BeginEvent, EndEvent, IntersectionEvent}))
+    for line in lines
+        bev = BeginEvent(Segment(line))
+        eev = EndEvent(Segment(line))
+        push!(evq, bev)
+        push!(evq, eev)
+    end
+    evq
 end
 
 isempty(evq::Events) = isempty(evq.q)
