@@ -215,7 +215,7 @@ isempty(evq::Events) = isempty(evq.q)
 push!(evq::Events, ev::E) where E<:AbstractEvent = enqueue!(evq.q, ev, getpriority(ev))
 pop!(evq::Events) = dequeue!(evq.q)
 
-function removeintersectionevent!(evq::Events{T}, s1::Segment{T}, s2::Segment{T})
+function removeintersectionevent!(evq::Events{T}, s1::Segment{T}, s2::Segment{T}) where T
     if dointersect(s1, s2)
         delete!(evq, IntersectionEvent(s1, s2))
     end
