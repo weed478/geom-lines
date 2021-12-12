@@ -29,7 +29,7 @@ mutable struct Segment{T}
 end
 
 function Segment(l::Line{2, T}) where T
-    p1, p2 = line
+    p1, p2 = l
     x1, y1 = p1
     x2, y2 = p2
     slope = (y2 - y1) / (x2 - x1)
@@ -39,7 +39,7 @@ end
 
 setsemitoken!(s::Segment, st::SMDSemiToken) = (s.st = st)
 getsemitoken(s::Segment) = s.st
-clearsemitoken!(s::Segment) = setsemitoken!(s, missing)
+clearsemitoken!(s::Segment) = (s.st = missing)
 
 
 
@@ -76,7 +76,7 @@ end
 State(sweepline::SweepLine{T}) where T = State{T}(SortedMultiDict{Segment{T}, Segment{T}}(SweepLineOrdering(sweepline)))
 
 function insert!(state::State{T}, s::Segment{T}) where T
-    st = insert!(state.sc, s, s)
+    st = DataStructures.insert!(state.sc, s,  s)
     setsemitoken!(s, st)
 end
 
@@ -85,8 +85,23 @@ function delete!(state::State{T}, s::Segment{T}) where T
     clearsemitoken!(s)
 end
 
-pred(state::State{T}, s::Segment{T}) where T = deref((state.sc, regress((state.sc, getsemitoken(s)))))
-succ(state::State{T}, s::Segment{T}) where T = deref((state.sc, advance((state.sc, getsemitoken(s)))))
+function pred(state::State{T}, s::Segment{T}) where T
+    st = regress((state.sc, getsemitoken(s)))
+    if st == beforestartsemitoken(state.sc)
+        missing
+    else
+        deref_value((state.sc, st))
+    end
+end
+
+function succ(state::State{T}, s::Segment{T}) where T
+    st = advance((state.sc, getsemitoken(s)))
+    if st == pastendsemitoken(state.sc)
+        missing
+    else
+        deref_value((state.sc, st))
+    end
+end
 
 function compare(state::State{T}, s1::Segment{T}, s2::Segment{T}) where T
     sc = state.sc
@@ -97,11 +112,11 @@ end
 
 function flip!(state::State{T}, s1::Segment{T}, s2::Segment{T}) where T
     if compare(state, s1, s2) < 0
-        pop!(state, s1)
-        push!(state, s1)
+        delete!(state, s1)
+        insert!(state, s1)
     else
-        pop!(state, s2)
-        push!(state, s2)
+        delete!(state, s2)
+        insert!(state, s2)
     end
 end
 
@@ -151,11 +166,11 @@ getpriority(ev::IntersectionEvent) = ev.intersectionx
 # Events
 
 struct Events{T}
-    q::PriorityQueue{T, Union{BeginEvent, EndEvent, IntersectionEvent}}
+    q::PriorityQueue{Union{BeginEvent, EndEvent, IntersectionEvent}, T}
 end
 
 function Events(lines::Vector{Line{2, T}}) where T
-    evq = Events{T}(PriorityQueue(T, Union{BeginEvent, EndEvent, IntersectionEvent}))
+    evq = Events{T}(PriorityQueue{Union{BeginEvent, EndEvent, IntersectionEvent}, T}())
     for line in lines
         bev = BeginEvent(Segment(line))
         eev = EndEvent(Segment(line))
@@ -178,7 +193,7 @@ function orient(a::Point2{T}, b::Point2{T}, c::Point2{T})::Int where T
 
     d::T = det(M)
 
-    if abs(d) < e
+    if abs(d) < T(1e-10)
         0
     elseif d < 0
         -1
@@ -186,6 +201,9 @@ function orient(a::Point2{T}, b::Point2{T}, c::Point2{T})::Int where T
         1
     end
 end
+
+checkintersection!(::Events, ::Union{Missing, Segment}, ::Missing) = nothing
+checkintersection!(::Events, ::Missing, ::Union{Missing, Segment}) = nothing
 
 function checkintersection!(evq::Events{T}, s1::Segment{T}, s2::Segment{T}) where T
     a1 = s1.line[1]
@@ -220,7 +238,7 @@ function findintersections(lines::Vector{Line{2, T}}) where T
             insert!(state, s)
             checkintersection!(evq, s, succ(state, s))
             checkintersection!(evq, s, pred(state, s))
-        elseif E isa EndEvent
+        elseif ev isa EndEvent
             s = getsegment(ev)
             checkintersection!(evq, pred(state, s), succ(state, s))
             delete!(state, s)
