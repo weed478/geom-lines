@@ -45,14 +45,30 @@ function run()
     # intersections
 
     hasintersection = Node(false)
+    intersectionpoints = Node(Point2f[])
 
     on(points) do points
         lines = Line{2, Float32}[]
         for i = 2:2:length(points)
             push!(lines, Line(points[i-1], points[i]))
         end
-        hasintersection[] = Sweeping.hasintersection(lines)
+
+        intersections = Sweeping.findintersections(lines)
+
+        hasintersection[] = !isempty(intersections)
+
+        points = Point2f[]
+        for intersection in intersections
+            push!(points, intersection.p)
+        end
+        intersectionpoints[] = points
     end
+
+    scatter!(
+        ax,
+        intersectionpoints,
+        color=:red,
+    )
 
     hasintersectiontext = @lift($hasintersection ? "Some segments are intersecting" : "No intersections found")
     Label(infogrid[1, 1:3], hasintersectiontext)
