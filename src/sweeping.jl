@@ -1,6 +1,6 @@
 module Sweeping
 
-export hasintersection
+export findintersections, hasintersection
 
 using GeometryBasics
 using DataStructures
@@ -23,23 +23,45 @@ mutable struct Segment{T}
     slope::T
     intercept::T
     line::Line{2, T}
+    lineindex::Int
     x1::T
     x2::T
     st::Union{Missing, SMDSemiToken}
 end
 
-function Segment(l::Line{2, T}) where T
+function Segment(l::Line{2, T}, i::Int) where T
     p1, p2 = l
     x1, y1 = p1
     x2, y2 = p2
     slope = (y2 - y1) / (x2 - x1)
     intercept = y1 - slope * x1
-    Segment{T}(slope, intercept, l, min(l[1][1], l[2][1]), max(l[1][1], l[2][1]), missing)
+    Segment{T}(slope, intercept, l, i, min(l[1][1], l[2][1]), max(l[1][1], l[2][1]), missing)
 end
 
 setsemitoken!(s::Segment, st::SMDSemiToken) = (s.st = st)
 getsemitoken(s::Segment) = s.st
 clearsemitoken!(s::Segment) = (s.st = missing)
+
+
+
+# Intersection
+
+struct Intersection{T}
+    i1::Int
+    i2::Int
+    p::Point{2, T}
+end
+
+function Intersection(s1::Segment{T}, s2::Segment{T}, x::T) where T
+    Intersection{T}(
+        s1.lineindex,
+        s2.lineindex,
+        Point{2, T}(
+            x,
+            s1.slope * x + s1.intercept,
+        ),
+    )
+end
 
 
 
@@ -171,8 +193,8 @@ end
 
 function Events(lines::Vector{Line{2, T}}) where T
     evq = Events{T}(PriorityQueue{Union{BeginEvent, EndEvent, IntersectionEvent}, T}())
-    for line in lines
-        s = Segment(line)
+    for (i, line) in enumerate(lines)
+        s = Segment(line, i)
         bev = BeginEvent(s)
         eev = EndEvent(s)
         push!(evq, bev)
@@ -231,7 +253,7 @@ function findintersections(lines::Vector{Line{2, T}}) where T
     state = State(sweepline)
     evq = Events(lines)
 
-    intersections = []
+    intersections = Intersection[]
 
     while !isempty(evq)
         ev = pop!(evq)
@@ -251,7 +273,7 @@ function findintersections(lines::Vector{Line{2, T}}) where T
         else # IntersectionEvent
             @debug "Intersection event"
             s1, s2 = getsegments(ev)
-            push!(intersections, (s1, s2))
+            push!(intersections, Intersection(s1, s2, getpriority(ev)))
             flip!(state, s1, s2)
             if compare(state, s1, s2) < 0
                 checkintersection!(evq, s1, pred(state, s1))
