@@ -180,6 +180,14 @@ struct IntersectionEvent{T} <: AbstractEvent
     intersectionx::T
 end
 
+function IntersectionEvent(s1::Segment{T}, s2::Segment{T}) where T
+    intersectionx = (s2.intercept - s1.intercept) / (s1.slope - s2.slope)
+    if s1.slope > s2.slope
+        s1, s2 = s2, s1
+    end
+    IntersectionEvent{T}(s1, s2, intersectionx)
+end
+
 getsegments(ev::IntersectionEvent) = (ev.s1, ev.s2)
 getpriority(ev::IntersectionEvent) = ev.intersectionx
 
@@ -207,6 +215,12 @@ isempty(evq::Events) = isempty(evq.q)
 push!(evq::Events, ev::E) where E<:AbstractEvent = enqueue!(evq.q, ev, getpriority(ev))
 pop!(evq::Events) = dequeue!(evq.q)
 
+function removeintersectionevent!(evq::Events{T}, s1::Segment{T}, s2::Segment{T})
+    if dointersect(s1, s2)
+        delete!(evq, IntersectionEvent(s1, s2))
+    end
+end
+
 
 
 function orient(a::Point2{T}, b::Point2{T}, c::Point2{T})::Int where T
@@ -225,23 +239,22 @@ function orient(a::Point2{T}, b::Point2{T}, c::Point2{T})::Int where T
     end
 end
 
+function dointersect(s1::Segment{T}, s2::Segment{T}) where T
+    a1 = s1.line[1]
+    b1 = s1.line[2]
+    a2 = s2.line[1]
+    b2 = s2.line[2]
+    orient(a1, b1, a2) != orient(a1, b1, b2) && orient(a2, b2, a1) != orient(a2, b2, b1)
+end
+
 checkintersection!(::Events, ::Segment, ::Missing) = nothing
 checkintersection!(::Events, ::Missing, ::Segment) = nothing
 checkintersection!(::Events, ::Missing, ::Missing) = nothing
 
 function checkintersection!(evq::Events{T}, s1::Segment{T}, s2::Segment{T}) where T
-    a1 = s1.line[1]
-    b1 = s1.line[2]
-    a2 = s2.line[1]
-    b2 = s2.line[2]
-
-    if orient(a1, b1, a2) != orient(a1, b1, b2) && orient(a2, b2, a1) != orient(a2, b2, b1)
+    if dointersect(s1, s2)
         @debug "New intersection event"
-        # a1x + b1 = a2x + b2
-        # a1x - a2x = b2 - b1
-        # x = (b2 - b1) / (a1 - a2)
-        intersectionx = (s2.intercept - s1.intercept) / (s1.slope - s2.slope)
-        iev = IntersectionEvent(s1, s2, intersectionx)
+        iev = IntersectionEvent(s1, s2)
         push!(evq, iev)
     end
 end
@@ -252,8 +265,11 @@ function handleevent!(state::State{T}, evq::Events{T}, ::Vector{Intersection{T}}
     @debug "Begin event"
     s = getsegment(ev)
     insert!(state, s)
-    checkintersection!(evq, s, succ(state, s))
-    checkintersection!(evq, s, pred(state, s))
+    r = succ(state, s)
+    t = pred(state, s)
+    removeintersectionevent!(evq, r, t)
+    checkintersection!(evq, s, r)
+    checkintersection!(evq, s, t)
 end
 
 function handleevent!(state::State{T}, evq::Events{T}, ::Vector{Intersection{T}}, ev::EndEvent{T}) where T
@@ -265,16 +281,26 @@ end
 
 function handleevent!(state::State{T}, evq::Events{T}, intersections::Vector{Intersection{T}}, ev::IntersectionEvent{T}) where T
     @debug "Intersection event"
+    
     s1, s2 = getsegments(ev)
     push!(intersections, Intersection(s1, s2, getpriority(ev)))
+    
     flip!(state, s1, s2)
-    if compare(state, s1, s2) < 0
-        checkintersection!(evq, s1, pred(state, s1))
-        checkintersection!(evq, s2, succ(state, s2))
-    else
-        checkintersection!(evq, s1, succ(state, s1))
-        checkintersection!(evq, s2, pred(state, s2))
+    
+    ord = compare(state, s1, s2) < 0
+
+    if ord > 0 
+        s1, s2 = s2, s1
     end
+
+    s0 = pred(state, s1)
+    s3 = succ(state, s2)
+
+    removeintersectionevent!(evq, s0, s2)
+    removeintersectionevent!(evq, s1, s3)
+
+    checkintersection!(evq, s0, s1)
+    checkintersection!(evq, s2, s3)
 end
 
 function findintersections(lines::Vector{Line{2, T}}) where T
