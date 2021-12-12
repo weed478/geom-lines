@@ -204,7 +204,7 @@ function Events(lines::Vector{Line{2, T}}) where T
 end
 
 isempty(evq::Events) = isempty(evq.q)
-push!(evq::Events, ev::E) where E<:AbstractEvent = (evq.q[ev] = getpriority(ev))
+push!(evq::Events, ev::E) where E<:AbstractEvent = enqueue!(evq.q, ev, getpriority(ev))
 pop!(evq::Events) = dequeue!(evq.q)
 
 
