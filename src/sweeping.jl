@@ -17,6 +17,10 @@ import DataStructures.compare
 
 
 
+const ϵ = 1e-4
+
+
+
 # Segment
 
 mutable struct Segment{T}
@@ -84,7 +88,7 @@ function lt(o::SweepLineOrdering{T}, a::Segment{T}, b::Segment{T}) where T
 end
 
 function eq(o::SweepLineOrdering{T}, a::Segment{T}, b::Segment{T}) where T
-    abs((a.slope * o.sweepline.x + a.intercept) - (b.slope * o.sweepline.x + b.intercept)) < T(1e-10)
+    abs((a.slope * o.sweepline.x + a.intercept) - (b.slope * o.sweepline.x + b.intercept)) < T(ϵ)
 end
 
 
@@ -230,6 +234,7 @@ function removeintersectionevent!(evq::Events{T}, s1::Segment{T}, s2::Segment{T}
     if dointersect(s1, s2)
         ev = IntersectionEvent(s1, s2)
         if haskey(evq.q, ev)
+            @debug "Removing intersection"
             delete!(evq.q, ev)
         end
     end
@@ -244,7 +249,7 @@ function orient(a::Point2{T}, b::Point2{T}, c::Point2{T})::Int where T
 
     d::T = det(M)
 
-    if abs(d) < T(1e-10)
+    if abs(d) < T(ϵ)
         0
     elseif d < 0
         -1
@@ -325,6 +330,10 @@ function findintersections(lines::Vector{Line{2, T}}) where T
 
     while !isempty(evq)
         ev = pop!(evq)
+        if getpriority(ev) < sweepline.x
+            @debug "Got event before sweep line"
+            continue
+        end
         sweepline.x = getpriority(ev)
         handleevent!(state, evq, intersections, ev)
     end
