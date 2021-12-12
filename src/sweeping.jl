@@ -4,6 +4,15 @@ export hasintersection
 
 using GeometryBasics
 using DataStructures
+import Base.push!
+import Base.pop!
+import Base.insert!
+import Base.delete!
+import Base.isempty
+import Base.Ordering
+import Base.lt
+import DataStructures.eq
+import DataStructures.compare
 
 
 
@@ -15,7 +24,7 @@ mutable struct Segment{T}
     line::Line{2, T}
     x1::T
     x2::T
-    tok::Union{Missing, SetToken}
+    st::Union{Missing, SMDSemiToken}
 end
 
 function Segment(l::Line{2, T}) where T
@@ -27,32 +36,73 @@ function Segment(l::Line{2, T}) where T
     Segment{T}(slope, intercept, l, min(l[1][1], l[2][1]), max(l[1][1], l[2][1]), missing)
 end
 
-settoken!(s::Segment, tok::SetToken) = (s.tok = tok)
-gettoken(s::Segment) = s.tok
-cleartoken!(s::Segment) = settoken!(s, missing)
+setsemitoken!(s::Segment, st::SMDSemiToken) = (s.st = st)
+getsemitoken(s::Segment) = s.st
+clearsemitoken!(s::Segment) = setsemitoken!(s, missing)
+
+
+
+# SweepLine
+
+mutable struct SweepLine{T}
+    x::T
+end
+
+
+
+# SweepLineOrdering
+
+struct SweepLineOrdering{T} <: Ordering
+    sweepline::SweepLine{T}
+end
+
+function lt(o::SweepLineOrdering{T}, a::Segment{T}, b::Segment{T}) where T
+    !eq(o, a, b) && isless(a.slope * o.sweepline.x + a.intercept, b.slope * o.sweepline.x + b.intercept)
+end
+
+function eq(o::SweepLineOrdering{T}, a::Segment{T}, b::Segment{T}) where T
+    abs((a.slope * o.sweepline.x + a.intercept) - (b.slope * o.sweepline.x + b.intercept)) < T(1e-10)
+end
 
 
 
 # State
 
 struct State{T}
-    sc::SortedSet{Segment{T}}
+    sc::SortedMultiDict{Segment{T}, Segment{T}, SweepLineOrdering{T}}
 end
 
-function Base.push!(st::State{T}, s::Segment{T}) where T
-    semtok = insert!(st.sc, s)[2]
-    settoken!(s, (st.sc, semtok))
+State(sweepline::SweepLine{T}) where T = State{T}(SortedMultiDict{Segment{T}, Segment{T}}(SweepLineOrdering(sweepline)))
+
+function insert!(state::State{T}, s::Segment{T}) where T
+    st = insert!(state.sc, s, s)
+    setsemitoken!(s, st)
 end
 
-function Base.pop!(st::State{T}, s::Segment{T}) where T
-    pop!(st.sc, s)
-    cleartoken!(s)
+function delete!(state::State{T}, s::Segment{T}) where T
+    DataStructures.delete!((state.sc, getsemitoken(s)))
+    clearsemitoken!(s)
 end
 
-pred(st::State{T}, s::Segment{T}) where T = deref((st.sc, regress(gettoken(s))))
-succ(st::State{T}, s::Segment{T}) where T = deref((st.sc, advance(gettoken(s))))
+pred(state::State{T}, s::Segment{T}) where T = deref((state.sc, regress((state.sc, getsemitoken(s)))))
+succ(state::State{T}, s::Segment{T}) where T = deref((state.sc, advance((state.sc, getsemitoken(s)))))
 
-flip!(st::State{T}, s1::Segment{T}, s2::Segment{T}) where T = throw("Not implemented")
+function compare(state::State{T}, s1::Segment{T}, s2::Segment{T}) where T
+    sc = state.sc
+    st1 = getsemitoken(s1)
+    st2 = getsemitoken(s2)
+    compare(sc, st1, st2)
+end
+
+function flip!(state::State{T}, s1::Segment{T}, s2::Segment{T}) where T
+    if compare(state, s1, s2) < 0
+        pop!(state, s1)
+        push!(state, s1)
+    else
+        pop!(state, s2)
+        push!(state, s2)
+    end
+end
 
 
 
@@ -75,8 +125,8 @@ getpriority(ev::BeginEvent) = ev.s.x1
 
 # EndEvent
 
-struct EndEvent <: AbstractEvent
-
+struct EndEvent{T} <: AbstractEvent
+    s::Segment{T}
 end
 
 getsegment(ev::EndEvent) = ev.s
@@ -107,20 +157,22 @@ function Events(lines::Vector{Line{2, T}}) where T
     Events{T}(PriorityQueue(T, Union{BeginEvent, EndEvent, IntersectionEvent}))
 end
 
-Base.isempty(eq::Events) = isempty(eq.q)
-Base.push!(eq::Events, ev::E) where E<:AbstractEvent = enqueue!(eq.q, ev, getpriority(ev))
-Base.pop!(eq::Events) = dequeue!(eq.q)
+isempty(eq::Events) = isempty(eq.q)
+push!(eq::Events, ev::E) where E<:AbstractEvent = enqueue!(eq.q, ev, getpriority(ev))
+pop!(eq::Events) = dequeue!(eq.q)
 checkintersection!(eq::Events{T}, s1::Segment{T}, s2::Segment{T}) where T = throw("Not implemented")
 
 
 function findintersections(lines::Vector{Line{2, T}}) where T
-    st = State()
+    sweepline = SweepLine(zero(T))
+    st = State(sweepline)
     eq = Events(lines)
 
     intersections = []
 
     while !isempty(eq)
         ev = pop!(eq)
+        sweepline.x = getpriority(ev)
 
         if ev isa BeginEvent
             s = getsegment(ev)
