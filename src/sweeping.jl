@@ -133,12 +133,19 @@ function compare(state::State{T}, s1::Segment{T}, s2::Segment{T}) where T
 end
 
 function flip!(state::State{T}, s1::Segment{T}, s2::Segment{T}) where T
-    if compare(state, s1, s2) < 0
+    ord = compare(state, s1, s2)
+    if ord < 0
         delete!(state, s1)
-        insert!(state, s1)
-    else
         delete!(state, s2)
         insert!(state, s2)
+        insert!(state, s1)
+    elseif ord > 0
+        delete!(state, s2)
+        delete!(state, s1)
+        insert!(state, s1)
+        insert!(state, s2)
+    else
+        throw("flip! arguments were the same segment")
     end
 end
 
@@ -215,9 +222,16 @@ isempty(evq::Events) = isempty(evq.q)
 push!(evq::Events, ev::E) where E<:AbstractEvent = enqueue!(evq.q, ev, getpriority(ev))
 pop!(evq::Events) = dequeue!(evq.q)
 
+removeintersectionevent!(::Events, ::Missing, ::Segment) = nothing
+removeintersectionevent!(::Events, ::Segment, ::Missing) = nothing
+removeintersectionevent!(::Events, ::Missing, ::Missing) = nothing
+
 function removeintersectionevent!(evq::Events{T}, s1::Segment{T}, s2::Segment{T}) where T
     if dointersect(s1, s2)
-        delete!(evq, IntersectionEvent(s1, s2))
+        ev = IntersectionEvent(s1, s2)
+        if haskey(evq.q, ev)
+            delete!(evq.q, ev)
+        end
     end
 end
 
@@ -286,10 +300,8 @@ function handleevent!(state::State{T}, evq::Events{T}, intersections::Vector{Int
     push!(intersections, Intersection(s1, s2, getpriority(ev)))
     
     flip!(state, s1, s2)
-    
-    ord = compare(state, s1, s2) < 0
 
-    if ord > 0 
+    if compare(state, s1, s2) > 0 
         s1, s2 = s2, s1
     end
 
