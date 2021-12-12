@@ -9,12 +9,13 @@ using DataStructures
 
 # Segment
 
-struct Segment{T}
+mutable struct Segment{T}
     slope::T
     intercept::T
     line::Line{2, T}
     x1::T
     x2::T
+    tok::Union{Missing, SetToken}
 end
 
 function Segment(l::Line{2, T}) where T
@@ -23,21 +24,34 @@ function Segment(l::Line{2, T}) where T
     x2, y2 = p2
     slope = (y2 - y1) / (x2 - x1)
     intercept = y1 - slope * x1
-    Segment{T}(slope, intercept, l, min(l[1][1], l[2][1]), max(l[1][1], l[2][1]))
+    Segment{T}(slope, intercept, l, min(l[1][1], l[2][1]), max(l[1][1], l[2][1]), missing)
 end
+
+settoken!(s::Segment, tok::SetToken) = (s.tok = tok)
+gettoken(s::Segment) = s.tok
+cleartoken!(s::Segment) = settoken!(s, missing)
 
 
 
 # State
 
 struct State{T}
-
+    sc::SortedSet{Segment{T}}
 end
 
-Base.push!(st::State{T}, s::Segment{T}) where T = throw("Not implemented")
-Base.delete!(st::State{T}, s::Segment{T}) where T = throw("Not implemented")
-pred(st::State{T}, s::Segment{T}) where T = throw("Not implemented")
-succ(st::State{T}, s::Segment{T}) where T = throw("Not implemented")
+function Base.push!(st::State{T}, s::Segment{T}) where T
+    semtok = insert!(st.sc, s)[2]
+    settoken!(s, (st.sc, semtok))
+end
+
+function Base.pop!(st::State{T}, s::Segment{T}) where T
+    pop!(st.sc, s)
+    cleartoken!(s)
+end
+
+pred(st::State{T}, s::Segment{T}) where T = deref((st.sc, regress(gettoken(s))))
+succ(st::State{T}, s::Segment{T}) where T = deref((st.sc, advance(gettoken(s))))
+
 flip!(st::State{T}, s1::Segment{T}, s2::Segment{T}) where T = throw("Not implemented")
 
 
@@ -94,7 +108,7 @@ function Events(lines::Vector{Line{2, T}}) where T
 end
 
 Base.isempty(eq::Events) = isempty(eq.q)
-Base.push!(eq::Events{T}, ev::E{T}) where T, E<:AbstractEvent = enqueue!(eq.q, ev, getpriority(ev))
+Base.push!(eq::Events, ev::E) where E<:AbstractEvent = enqueue!(eq.q, ev, getpriority(ev))
 Base.pop!(eq::Events) = dequeue!(eq.q)
 checkintersection!(eq::Events{T}, s1::Segment{T}, s2::Segment{T}) where T = throw("Not implemented")
 
@@ -116,7 +130,7 @@ function findintersections(lines::Vector{Line{2, T}}) where T
         elseif E isa EndEvent
             s = getsegment(ev)
             checkintersection!(eq, pred(st, s), succ(st, s))
-            delete!(st, s)
+            pop!(st, s)
         else # IntersectionEvent
             s1, s2 = getsegments(ev)
             push!(intersections, (s1, s2))
