@@ -247,42 +247,48 @@ function checkintersection!(evq::Events{T}, s1::Segment{T}, s2::Segment{T}) wher
 end
 
 
+
+function handleevent!(state::State{T}, evq::Events{T}, ::Vector{Intersection{T}}, ev::BeginEvent{T}) where T
+    @debug "Begin event"
+    s = getsegment(ev)
+    insert!(state, s)
+    checkintersection!(evq, s, succ(state, s))
+    checkintersection!(evq, s, pred(state, s))
+end
+
+function handleevent!(state::State{T}, evq::Events{T}, ::Vector{Intersection{T}}, ev::EndEvent{T}) where T
+    @debug "End event"
+    s = getsegment(ev)
+    checkintersection!(evq, pred(state, s), succ(state, s))
+    delete!(state, s)
+end
+
+function handleevent!(state::State{T}, evq::Events{T}, intersections::Vector{Intersection{T}}, ev::IntersectionEvent{T}) where T
+    @debug "Intersection event"
+    s1, s2 = getsegments(ev)
+    push!(intersections, Intersection(s1, s2, getpriority(ev)))
+    flip!(state, s1, s2)
+    if compare(state, s1, s2) < 0
+        checkintersection!(evq, s1, pred(state, s1))
+        checkintersection!(evq, s2, succ(state, s2))
+    else
+        checkintersection!(evq, s1, succ(state, s1))
+        checkintersection!(evq, s2, pred(state, s2))
+    end
+end
+
 function findintersections(lines::Vector{Line{2, T}}) where T
     @debug "Start"
     sweepline = SweepLine(zero(T))
     state = State(sweepline)
     evq = Events(lines)
 
-    intersections = Intersection[]
+    intersections = Intersection{T}[]
 
     while !isempty(evq)
         ev = pop!(evq)
         sweepline.x = getpriority(ev)
-
-        if ev isa BeginEvent
-            @debug "Begin event"
-            s = getsegment(ev)
-            insert!(state, s)
-            checkintersection!(evq, s, succ(state, s))
-            checkintersection!(evq, s, pred(state, s))
-        elseif ev isa EndEvent
-            @debug "End event"
-            s = getsegment(ev)
-            checkintersection!(evq, pred(state, s), succ(state, s))
-            delete!(state, s)
-        else # IntersectionEvent
-            @debug "Intersection event"
-            s1, s2 = getsegments(ev)
-            push!(intersections, Intersection(s1, s2, getpriority(ev)))
-            flip!(state, s1, s2)
-            if compare(state, s1, s2) < 0
-                checkintersection!(evq, s1, pred(state, s1))
-                checkintersection!(evq, s2, succ(state, s2))
-            else
-                checkintersection!(evq, s1, succ(state, s1))
-                checkintersection!(evq, s2, pred(state, s2))
-            end
-        end
+        handleevent!(state, evq, intersections, ev)
     end
 
     intersections
