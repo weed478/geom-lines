@@ -154,45 +154,45 @@ struct Events{T}
 end
 
 function Events(lines::Vector{Line{2, T}}) where T
-    Events{T}(PriorityQueue(T, Union{BeginEvent, EndEvent, IntersectionEvent}))
+    evq = Events{T}(PriorityQueue(T, Union{BeginEvent, EndEvent, IntersectionEvent}))
 end
 
-isempty(eq::Events) = isempty(eq.q)
-push!(eq::Events, ev::E) where E<:AbstractEvent = enqueue!(eq.q, ev, getpriority(ev))
-pop!(eq::Events) = dequeue!(eq.q)
-checkintersection!(eq::Events{T}, s1::Segment{T}, s2::Segment{T}) where T = throw("Not implemented")
+isempty(evq::Events) = isempty(evq.q)
+push!(evq::Events, ev::E) where E<:AbstractEvent = enqueue!(evq.q, ev, getpriority(ev))
+pop!(evq::Events) = dequeue!(evq.q)
+checkintersection!(evq::Events{T}, s1::Segment{T}, s2::Segment{T}) where T = throw("Not implemented")
 
 
 function findintersections(lines::Vector{Line{2, T}}) where T
     sweepline = SweepLine(zero(T))
-    st = State(sweepline)
-    eq = Events(lines)
+    state = State(sweepline)
+    evq = Events(lines)
 
     intersections = []
 
-    while !isempty(eq)
-        ev = pop!(eq)
+    while !isempty(evq)
+        ev = pop!(evq)
         sweepline.x = getpriority(ev)
 
         if ev isa BeginEvent
             s = getsegment(ev)
-            push!(st, s)
-            checkintersection!(eq, s, succ(st, s))
-            checkintersection!(eq, s, pred(st, s))
+            insert!(state, s)
+            checkintersection!(evq, s, succ(state, s))
+            checkintersection!(evq, s, pred(state, s))
         elseif E isa EndEvent
             s = getsegment(ev)
-            checkintersection!(eq, pred(st, s), succ(st, s))
-            pop!(st, s)
+            checkintersection!(evq, pred(state, s), succ(state, s))
+            delete!(state, s)
         else # IntersectionEvent
             s1, s2 = getsegments(ev)
             push!(intersections, (s1, s2))
-            flip!(st, s1, s2)
-            if succ(st, s1) === s2
-                checkintersection!(eq, s1, pred(st, s1))
-                checkintersection!(eq, s2, succ(st, s2))
+            flip!(state, s1, s2)
+            if compare(state, s1, s2) > 0
+                checkintersection!(evq, s1, pred(state, s1))
+                checkintersection!(evq, s2, succ(state, s2))
             else
-                checkintersection!(eq, s1, succ(st, s1))
-                checkintersection!(eq, s2, pred(st, s2))
+                checkintersection!(evq, s1, succ(state, s1))
+                checkintersection!(evq, s2, pred(state, s2))
             end
         end
     end
