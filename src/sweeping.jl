@@ -87,13 +87,13 @@ end
 # State
 
 struct State{T}
-    sc::SortedMultiDict{Segment{T}, Segment{T}, SweepLineOrdering{T}}
+    sc::SortedMultiDict{Segment{T}, Nothing, SweepLineOrdering{T}}
 end
 
-State(sweepline::SweepLine{T}) where T = State{T}(SortedMultiDict{Segment{T}, Segment{T}}(SweepLineOrdering(sweepline)))
+State(sweepline::SweepLine{T}) where T = State{T}(SortedMultiDict{Segment{T}, Nothing}(SweepLineOrdering(sweepline)))
 
 function Base.insert!(state::State{T}, s::Segment{T}) where T
-    st = insert!(state.sc, s,  s)
+    st = insert!(state.sc, s,  nothing)
     setsemitoken!(s, st)
 end
 
@@ -107,7 +107,7 @@ function pred(state::State{T}, s::Segment{T}) where T
     if st == beforestartsemitoken(state.sc)
         missing
     else
-        deref_value((state.sc, st))
+        deref_key((state.sc, st))
     end
 end
 
@@ -116,7 +116,7 @@ function succ(state::State{T}, s::Segment{T}) where T
     if st == pastendsemitoken(state.sc)
         missing
     else
-        deref_value((state.sc, st))
+        deref_key((state.sc, st))
     end
 end
 
