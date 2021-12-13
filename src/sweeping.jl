@@ -5,16 +5,7 @@ export findintersections, hasintersection
 using GeometryBasics
 using DataStructures
 using LinearAlgebra: det
-import Base.push!
-import Base.pop!
-import Base.insert!
-import Base.delete!
-import Base.isempty
-import Base.Ordering
-import Base.lt
-import DataStructures.eq
-import DataStructures.compare
-
+using Base: Ordering
 
 
 const ϵ = 1e-4
@@ -83,11 +74,11 @@ struct SweepLineOrdering{T} <: Ordering
     sweepline::SweepLine{T}
 end
 
-function lt(o::SweepLineOrdering{T}, a::Segment{T}, b::Segment{T}) where T
-    !eq(o, a, b) && isless(a.slope * o.sweepline.x + a.intercept, b.slope * o.sweepline.x + b.intercept)
+function Base.lt(o::SweepLineOrdering{T}, a::Segment{T}, b::Segment{T}) where T
+    !DataStructures.eq(o, a, b) && isless(a.slope * o.sweepline.x + a.intercept, b.slope * o.sweepline.x + b.intercept)
 end
 
-function eq(o::SweepLineOrdering{T}, a::Segment{T}, b::Segment{T}) where T
+function DataStructures.eq(o::SweepLineOrdering{T}, a::Segment{T}, b::Segment{T}) where T
     abs((a.slope * o.sweepline.x + a.intercept) - (b.slope * o.sweepline.x + b.intercept)) < T(ϵ)
 end
 
@@ -101,13 +92,13 @@ end
 
 State(sweepline::SweepLine{T}) where T = State{T}(SortedMultiDict{Segment{T}, Segment{T}}(SweepLineOrdering(sweepline)))
 
-function insert!(state::State{T}, s::Segment{T}) where T
-    st = DataStructures.insert!(state.sc, s,  s)
+function Base.insert!(state::State{T}, s::Segment{T}) where T
+    st = insert!(state.sc, s,  s)
     setsemitoken!(s, st)
 end
 
-function delete!(state::State{T}, s::Segment{T}) where T
-    DataStructures.delete!((state.sc, getsemitoken(s)))
+function Base.delete!(state::State{T}, s::Segment{T}) where T
+    delete!((state.sc, getsemitoken(s)))
     clearsemitoken!(s)
 end
 
@@ -129,7 +120,7 @@ function succ(state::State{T}, s::Segment{T}) where T
     end
 end
 
-function compare(state::State{T}, s1::Segment{T}, s2::Segment{T}) where T
+function DataStructures.compare(state::State{T}, s1::Segment{T}, s2::Segment{T}) where T
     sc = state.sc
     st1 = getsemitoken(s1)
     st2 = getsemitoken(s2)
@@ -222,9 +213,9 @@ function Events(lines::Vector{Line{2, T}}) where T
     evq
 end
 
-isempty(evq::Events) = isempty(evq.q)
-push!(evq::Events, ev::E) where E<:AbstractEvent = enqueue!(evq.q, ev, getpriority(ev))
-pop!(evq::Events) = dequeue!(evq.q)
+Base.isempty(evq::Events) = isempty(evq.q)
+Base.push!(evq::Events, ev::E) where E<:AbstractEvent = enqueue!(evq.q, ev, getpriority(ev))
+Base.pop!(evq::Events) = dequeue!(evq.q)
 
 removeintersectionevent!(::Events, ::Missing, ::Segment) = nothing
 removeintersectionevent!(::Events, ::Segment, ::Missing) = nothing
