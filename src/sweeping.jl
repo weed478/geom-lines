@@ -322,7 +322,7 @@ end
 
 function findintersections(lines::Vector{Line{2, T}}) where T
     @debug "Start"
-    sweepline = SweepLine(zero(T))
+    sweepline = SweepLine(T(-Inf))
     state = State(sweepline)
     evq = Events(lines)
 
