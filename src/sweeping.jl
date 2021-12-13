@@ -131,13 +131,9 @@ function flip!(state::State{T}, s1::Segment{T}, s2::Segment{T}) where T
     ord = compare(state, s1, s2)
     if ord < 0
         delete!(state, s1)
-        delete!(state, s2)
-        insert!(state, s2)
         insert!(state, s1)
     elseif ord > 0
         delete!(state, s2)
-        delete!(state, s1)
-        insert!(state, s1)
         insert!(state, s2)
     else
         throw("flip! arguments were the same segment")
