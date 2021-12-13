@@ -149,27 +149,30 @@ end
 # Event types
 
 abstract type AbstractEvent end
+abstract type AbstractSingleSegmentEvent <: AbstractEvent end
+
+getsegment(ev::E) where E<:AbstractSingleSegmentEvent = ev.s
+Base.hash(ev::E, h::UInt) where E<:AbstractSingleSegmentEvent = hash(ev.s.lineindex, h)
+Base.isequal(a::E, b::E) where E<:AbstractSingleSegmentEvent = a.s.lineindex == b.s.lineindex
 
 
 
 # Begin Event
 
-struct BeginEvent{T} <: AbstractEvent
+struct BeginEvent{T} <: AbstractSingleSegmentEvent
     s::Segment{T}
 end
 
-getsegment(ev::BeginEvent) = ev.s
 getpriority(ev::BeginEvent) = ev.s.x1
 
 
 
 # EndEvent
 
-struct EndEvent{T} <: AbstractEvent
+struct EndEvent{T} <: AbstractSingleSegmentEvent
     s::Segment{T}
 end
 
-getsegment(ev::EndEvent) = ev.s
 getpriority(ev::EndEvent) = ev.s.x2
 
 
@@ -193,6 +196,15 @@ end
 getsegments(ev::IntersectionEvent) = (ev.s1, ev.s2)
 getpriority(ev::IntersectionEvent) = ev.intersectionx
 
+function Base.hash(ev::IntersectionEvent, h::UInt)
+    i1 = ev.s1.lineindex
+    i2 = ev.s2.lineindex
+    hash((min(i1, i2), max(i1, i2)), h)
+end
+
+Base.isequal(a::IntersectionEvent, b::IntersectionEvent) =
+    (a.s1.lineindex == b.s1.lineindex && a.s2.lineindex == b.s2.lineindex) ||
+    (a.s1.lineindex == b.s2.lineindex && a.s2.lineindex == b.s1.lineindex)
 
 
 # Events
