@@ -6,6 +6,8 @@ using Distributions: Uniform
 
 import ..Sweeping
 
+const Point2d = Point{2, Float64}
+
 function savesegments(points, filename)
     open(filename, "w") do f
         for (x, y) in points
@@ -15,10 +17,10 @@ function savesegments(points, filename)
 end
 
 function loadsegments(filename)::Union{Vector{Point2f}, Nothing}
-    points = Point2f[]
+    points = Point2d[]
     for line in readlines(filename)
-        x, y = parse.(Float32, split(line))
-        push!(points, Point2f(x, y))
+        x, y = parse.(Float64, split(line))
+        push!(points, Point2d(x, y))
     end
     points
 end
@@ -30,7 +32,7 @@ function run()
     ax = Axis(fig[1:2, 1])
     deregister_interaction!(ax, :rectanglezoom)
 
-    points = Node(Point2f[])
+    points = Node(Point2d[])
 
     scatter!(
         ax,
@@ -44,17 +46,17 @@ function run()
 
     # intersections
 
-    intersectionpoints = Node(Point2f[])
+    intersectionpoints = Node(Point2d[])
 
     on(points) do points
-        lines = Line{2, Float32}[]
+        lines = Line{2, Float64}[]
         for i = 2:2:length(points)
             push!(lines, Line(points[i-1], points[i]))
         end
 
-        intersections = Sweeping.findintersections(lines)
+        intersections = Sweeping.findintersections(convert(Vector{Line{2, Float64}}, lines))
 
-        points = Point2f[]
+        points = Point2d[]
         for intersection in intersections
             push!(points, intersection.p)
         end
@@ -88,7 +90,7 @@ function run()
     mouseevents = addmouseevents!(ax.scene)
     onmouseleftdown(mouseevents) do event
         dpos = event.data
-        pushpoint!(dpos)
+        pushpoint!(Point2d(dpos))
     end
 
     on(events(fig).keyboardbutton) do event
@@ -125,25 +127,25 @@ function run()
     Label(controlsgrid[3, 1], "X min")
     xlowtb = Textbox(controlsgrid[4, 1],
         placeholder="X min",
-        validator=Float32,
+        validator=Float64,
     )
 
     Label(controlsgrid[3, 2], "X max")
     xhightb = Textbox(controlsgrid[4, 2],
         placeholder="X max",
-        validator=Float32,
+        validator=Float64,
     )
 
     Label(controlsgrid[5, 1], "Y min")
     ylowtb = Textbox(controlsgrid[6, 1],
         placeholder="Y min",
-        validator=Float32,
+        validator=Float64,
     )
 
     Label(controlsgrid[5, 2], "Y max")
     yhightb = Textbox(controlsgrid[6, 2],
         placeholder="Y max",
-        validator=Float32,
+        validator=Float64,
     )
 
     Label(controlsgrid[3, 3], "Num segments")
@@ -154,23 +156,23 @@ function run()
 
     generatebtn = Button(controlsgrid[5:6, 3], label="Generate")
     on(generatebtn.clicks) do n
-        xlow = tryparse(Float32, xlowtb.displayed_string[])
-        xhigh = tryparse(Float32, xhightb.displayed_string[])
-        ylow = tryparse(Float32, ylowtb.displayed_string[])
-        yhigh = tryparse(Float32, yhightb.displayed_string[])
+        xlow = tryparse(Float64, xlowtb.displayed_string[])
+        xhigh = tryparse(Float64, xhightb.displayed_string[])
+        ylow = tryparse(Float64, ylowtb.displayed_string[])
+        yhigh = tryparse(Float64, yhightb.displayed_string[])
         numsegs = tryparse(Int, numsegstb.displayed_string[])
         if isnothing(xlow) || isnothing(xhigh) || isnothing(ylow) || isnothing(yhigh) || isnothing(numsegs)
             return
         end
 
-        xs = Float32[]
+        xs = Float64[]
         while length(xs) != numsegs * 2
             push!(xs, unique(rand(Uniform(xlow, xhigh), numsegs * 2 - length(xs)))...)
         end
         ys = rand(Uniform(ylow, yhigh), numsegs * 2)
 
         for (x, y) in zip(xs, ys)
-            pushpoint!(Point2f(x, y))
+            pushpoint!(Point2d(x, y))
         end
     end
 

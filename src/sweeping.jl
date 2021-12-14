@@ -8,7 +8,7 @@ using LinearAlgebra: det
 using Base: Ordering
 
 
-const ϵ = 1e-4
+const ϵ = 1e-10
 
 
 
