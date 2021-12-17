@@ -48,13 +48,20 @@ function run()
 
     intersectionpoints = Node(Point2d[])
 
+    anim = Node(Vector{Sweeping.AnimationFrame{Float64}}())
+    animframe = Node(1)
+
     on(points) do points
+        animframe[] = 0
+        anim[] = empty(anim[])
+
         lines = Line{2, Float64}[]
         for i = 2:2:length(points)
             push!(lines, Line(points[i-1], points[i]))
         end
 
-        intersections = Sweeping.findintersections(convert(Vector{Line{2, Float64}}, lines))
+        intersections = Sweeping.findintersections(convert(Vector{Line{2, Float64}}, lines), anim[])
+        anim[] = anim[]
 
         points = Point2d[]
         for intersection in intersections
@@ -65,12 +72,90 @@ function run()
 
     scatter!(
         ax,
-        intersectionpoints,
+        @lift($animframe == 0 ? $intersectionpoints : Point2d[]),
         color=:red,
     )
 
     numintersectionstext = @lift "Found $(length($intersectionpoints)) intersections"
     Label(infogrid[1, 1:3], numintersectionstext)
+
+
+
+    # animation 
+
+    function nextframe!()
+        if animframe[] < length(anim[])
+            animframe[] = animframe[] + 1    
+        end
+    end
+
+    statelines = Node(Point2d[])
+    begins = Node(Point2d[])
+    ends = Node(Point2d[])
+    intersects = Node(Point2d[])
+    allintersects = Node(Point2d[])
+    sweepline = Node(Point2d[])
+
+    on(animframe) do i
+        if i < 1
+            statelines[] = empty(statelines[])
+            begins[] = empty(begins[])
+            ends[] = empty(ends[])
+            intersects[] = empty(intersects[])
+            allintersects[] = empty(allintersects[])
+            sweepline[] = empty(sweepline[])
+            return
+        end
+
+        statelines[] = anim[][i].state
+        begins[] = anim[][i].begins
+        ends[] = anim[][i].ends
+        intersects[] = anim[][i].intersections
+        allintersects[] = anim[][i].allintersects
+
+        sweepline[] = Point2d[
+            (anim[][i].sweepline, minimum(getindex.(points[], 2))),
+            (anim[][i].sweepline, maximum(getindex.(points[], 2))),
+        ]
+    end
+
+    linesegments!(
+        ax,
+        statelines,
+        color=:red,
+    )
+
+    linesegments!(
+        ax,
+        sweepline,
+        color=:orange,
+    )
+
+    scatter!(
+        ax,
+        begins,
+        color=:green,
+    )
+
+    scatter!(
+        ax,
+        ends,
+        color=:blue,
+    )
+
+    scatter!(
+        ax,
+        intersects,
+        color=:red,
+    )
+
+    scatter!(
+        ax,
+        allintersects,
+        color=:red,
+    )
+
+
 
     # controls
 
@@ -120,41 +205,51 @@ function run()
         poppoint!()
     end
 
+    animbtn = controlsgrid[2, 1] = Button(fig, label="Animate")
+    on(animbtn.clicks) do n
+        nextframe!()
+    end
+
+    animresetbtn = controlsgrid[2, 2] = Button(fig, label="Reset animation")
+    on(animresetbtn.clicks) do n
+        animframe[] = 0
+    end
+
     # segment generation
 
-    Label(controlsgrid[2, 1:3], "Random segment generation")
+    Label(controlsgrid[3, 1:3], "Random segment generation")
 
-    Label(controlsgrid[3, 1], "X min")
-    xlowtb = Textbox(controlsgrid[4, 1],
+    Label(controlsgrid[4, 1], "X min")
+    xlowtb = Textbox(controlsgrid[5, 1],
         placeholder="X min",
         validator=Float64,
     )
 
-    Label(controlsgrid[3, 2], "X max")
-    xhightb = Textbox(controlsgrid[4, 2],
+    Label(controlsgrid[4, 2], "X max")
+    xhightb = Textbox(controlsgrid[5, 2],
         placeholder="X max",
         validator=Float64,
     )
 
-    Label(controlsgrid[5, 1], "Y min")
-    ylowtb = Textbox(controlsgrid[6, 1],
+    Label(controlsgrid[6, 1], "Y min")
+    ylowtb = Textbox(controlsgrid[7, 1],
         placeholder="Y min",
         validator=Float64,
     )
 
-    Label(controlsgrid[5, 2], "Y max")
-    yhightb = Textbox(controlsgrid[6, 2],
+    Label(controlsgrid[6, 2], "Y max")
+    yhightb = Textbox(controlsgrid[7, 2],
         placeholder="Y max",
         validator=Float64,
     )
 
-    Label(controlsgrid[3, 3], "Num segments")
-    numsegstb = Textbox(controlsgrid[4, 3],
+    Label(controlsgrid[4, 3], "Num segments")
+    numsegstb = Textbox(controlsgrid[5, 3],
         placeholder="Num segments",
         validator=Int,
     )
 
-    generatebtn = Button(controlsgrid[5:6, 3], label="Generate")
+    generatebtn = Button(controlsgrid[6:7, 3], label="Generate")
     on(generatebtn.clicks) do n
         xlow = tryparse(Float64, xlowtb.displayed_string[])
         xhigh = tryparse(Float64, xhightb.displayed_string[])
@@ -178,19 +273,19 @@ function run()
 
     # segment saving to file
 
-    Label(controlsgrid[7, 1:3], "Save/load segments")
+    Label(controlsgrid[8, 1:3], "Save/load segments")
 
-    Label(controlsgrid[8, 1], "Filename")
-    filenametb = Textbox(controlsgrid[9, 1],
+    Label(controlsgrid[9, 1], "Filename")
+    filenametb = Textbox(controlsgrid[10, 1],
         placeholder="Filename",
     )
     
-    savebtn = Button(controlsgrid[8, 2], label="Save")
+    savebtn = Button(controlsgrid[10, 3], label="Save")
     on(savebtn.clicks) do n
         savesegments(points[], filenametb.displayed_string[])
     end
     
-    loadbtn = Button(controlsgrid[9, 2], label="Load")
+    loadbtn = Button(controlsgrid[10, 2], label="Load")
     on(loadbtn.clicks) do n
         newpoints = loadsegments(filenametb.displayed_string[])
         if !isnothing(newpoints)

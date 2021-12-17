@@ -319,7 +319,11 @@ function handleevent!(state::State{T}, evq::Events{T}, intersections::Vector{Int
     checkintersection!(evq, s2, s3)
 end
 
-function findintersections(lines::Vector{Line{2, T}}) where T
+
+include("animation.jl")
+
+
+function findintersections(lines::Vector{Line{2, T}}, anim::Union{Missing, Vector{AnimationFrame{T}}}=missing) where T
     @debug "Start"
     sweepline = SweepLine(T(-Inf))
     state = State(sweepline)
@@ -335,6 +339,8 @@ function findintersections(lines::Vector{Line{2, T}}) where T
         end
         sweepline.x = getpriority(ev)
         handleevent!(state, evq, intersections, ev)
+
+        pushframe!(anim, state, evq, sweepline, intersections)
     end
 
     intersections
