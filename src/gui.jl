@@ -133,18 +133,6 @@ function run()
 
     scatter!(
         ax,
-        begins,
-        color=:green,
-    )
-
-    scatter!(
-        ax,
-        ends,
-        color=:blue,
-    )
-
-    scatter!(
-        ax,
         intersects,
         color=:red,
     )
@@ -163,14 +151,6 @@ function run()
         [
             MarkerElement(
                 marker=:circle,
-                color=:green,
-            ),
-            MarkerElement(
-                marker=:circle,
-                color=:blue,
-            ),
-            MarkerElement(
-                marker=:circle,
                 color=:red,
             ),
             LineElement(
@@ -178,8 +158,6 @@ function run()
             ),
         ],
         [
-            "Begin",
-            "End",
             "Intersection",
             "State",
         ],
