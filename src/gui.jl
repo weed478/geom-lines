@@ -157,6 +157,42 @@ function run()
 
 
 
+    # legend
+
+    Legend(fig[1, 1],
+        [
+            MarkerElement(
+                marker=:circle,
+                color=:green,
+            ),
+            MarkerElement(
+                marker=:circle,
+                color=:blue,
+            ),
+            MarkerElement(
+                marker=:circle,
+                color=:red,
+            ),
+            LineElement(
+                color=:red,
+            ),
+        ],
+        [
+            "Begin",
+            "End",
+            "Intersection",
+            "State",
+        ],
+        tellheight=false,
+        tellwidth=false,
+        margin=(10, 10, 10, 10),
+        halign=:right,
+        valign=:top,
+        orientation=:vertical,
+    )
+
+
+
     # controls
 
     function pushpoint!(p)
