@@ -1,3 +1,5 @@
+# Tutaj jedynie kod GUI.
+
 module gui
 
 using GLMakie

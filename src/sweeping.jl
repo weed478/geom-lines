@@ -1,3 +1,8 @@
+# Główny plik z algorytmem.
+# Wszystkie funkcje są udokumentowane
+# w sprawozdaniu, dlatego w tym pliku
+# unikam komentarzy.
+
 module Sweeping
 
 export findintersections, hasintersection

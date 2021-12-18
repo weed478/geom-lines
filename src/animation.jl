@@ -1,3 +1,5 @@
+# pomocnicza struktura do przechowywania klatek animacji
+
 struct AnimationFrame{T}
     state::Vector{Point{2, T}}
     begins::Vector{Point{2, T}}
